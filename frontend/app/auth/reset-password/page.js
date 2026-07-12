@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Lock } from "lucide-react"
@@ -13,6 +13,14 @@ import { useToast } from "@/hooks/use-toast"
 const apiBackend = process.env.NEXT_PUBLIC_API_BACKEND || "http://localhost:5000"
 
 export default function ResetPassword() {
+  return (
+    <Suspense fallback={<div className="flex min-h-[100dvh] items-center justify-center bg-muted/40 p-4"><p>Loading...</p></div>}>
+      <ResetPasswordContent />
+    </Suspense>
+  )
+}
+
+function ResetPasswordContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
   const [password, setPassword] = useState("")
