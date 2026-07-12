@@ -35,12 +35,35 @@ exports.uploadFile = async (req, res) => {
 
         const filePath = req.file.path;
         try {
+            const userId = req.user.id || req.user._id;
+            const user = await User.findById(userId);
+            if (!user) {
+                await fs.remove(filePath).catch(() => {});
+                return res.status(404).json({ error: 'User not found' });
+            }
+
+            const existingFiles = await File.find({ userId });
+            const currentUsage = existingFiles.reduce((sum, f) => {
+                const size = typeof f.file_size === 'object' && f.file_size !== null && f.file_size.low !== undefined
+                    ? BigInt(f.file_size.low) + (BigInt(f.file_size.high) << 32n)
+                    : BigInt(f.file_size || 0);
+                return sum + size;
+            }, 0n);
+
+            const fileSize = BigInt(req.file.size);
+            if (currentUsage + fileSize > BigInt(user.storageQuota)) {
+                await fs.remove(filePath).catch(() => {});
+                return res.status(413).json({
+                    error: 'Storage quota exceeded',
+                    quota: user.storageQuota.toString(),
+                    used: currentUsage.toString()
+                });
+            }
+
             const sentMsg = await bot.sendDocument(process.env.CHANNEL_USERNAME, filePath);
             const doc = sentMsg.document;
 
             await fs.remove(filePath);
-
-            const userId = req.user.id || req.user._id;
 
             const fileStorage = new File({
                 userId: userId,
@@ -176,9 +199,6 @@ exports.myFiles = async (req, res) => {
             }
             return BigInt(size || 0);
         };
-        const totalStorage = files.reduce((sum, file) => {
-            return sum + getFileSize(file.file_size);
-        }, 0n);
 
         const allFiles = await File.find(query).lean();
         const grandTotal = allFiles.reduce((sum, file) => sum + getFileSize(file.file_size), 0n);
@@ -211,7 +231,10 @@ exports.myFiles = async (req, res) => {
                 totalFiles: totalCount,
                 totalStorage: grandTotal.toString(),
                 readableStorage: formatStorage(grandTotal),
-                averageFileSize: totalCount > 0 ? formatStorage(grandTotal / BigInt(totalCount)) : '0 Bytes'
+                averageFileSize: totalCount > 0 ? formatStorage(grandTotal / BigInt(totalCount)) : '0 Bytes',
+                storageQuota: user.storageQuota.toString(),
+                readableQuota: formatStorage(BigInt(user.storageQuota)),
+                storageUsedPercent: Number((grandTotal * 100n) / BigInt(user.storageQuota))
             }
         });
 

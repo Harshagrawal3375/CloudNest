@@ -84,7 +84,7 @@ export default function Home() {
           <Link href="/#about" className="text-sm font-medium hover:underline underline-offset-4 transition-colors">
             About
           </Link>
-          {/* <ThemeToggle /> */}
+          <ThemeToggle />
           {user ? (
             <>
               <Button asChild variant="outline" className="gap-2">

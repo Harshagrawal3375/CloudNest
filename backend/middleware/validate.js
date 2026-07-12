@@ -21,6 +21,17 @@ const validateLogin = [
     handleValidation
 ];
 
+const validateForgotPassword = [
+    body('email').isEmail().withMessage('Valid email required').normalizeEmail(),
+    handleValidation
+];
+
+const validateResetPassword = [
+    body('token').notEmpty().withMessage('Token is required'),
+    body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
+    handleValidation
+];
+
 const validateShare = [
     param('id').isMongoId().withMessage('Invalid file ID'),
     body('email').isEmail().withMessage('Valid email required').normalizeEmail(),
@@ -40,6 +51,8 @@ const validateFileId = [
 module.exports = {
     validateSignup,
     validateLogin,
+    validateForgotPassword,
+    validateResetPassword,
     validateShare,
     validateMessageId,
     validateFileId
