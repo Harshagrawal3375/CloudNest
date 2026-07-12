@@ -100,7 +100,12 @@ export default function UploadFile() {
           router.push("/dashboard/files")
         }, 1500)
       } else {
-        setError("Failed to upload file. Please try again.")
+        try {
+          const resp = JSON.parse(xhr.responseText)
+          setError(resp.error || resp.msg || `Upload failed (${xhr.status})`)
+        } catch {
+          setError(`Upload failed (${xhr.status})`)
+        }
         setIsUploading(false)
       }
     }
